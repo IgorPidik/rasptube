@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	vlc "github.com/adrg/libvlc-go/v3"
 	"github.com/schollz/progressbar/v3"
@@ -14,8 +15,13 @@ func check(err error) {
 }
 
 func main() {
+	if len(os.Args) < 2 {
+		panic(errors.New("missing url"))
+	}
+	requestedUrl := os.Args[1]
+	fmt.Println(requestedUrl)
 	ytClient := YoutubeClient{}
-	url, streamUrlErr := ytClient.GetBestAudioStreamUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+	url, streamUrlErr := ytClient.GetBestAudioStreamUrl(requestedUrl)
 	check(streamUrlErr)
 
 	errVlc := vlc.Init("--quiet", "--no-xlib")
@@ -37,6 +43,7 @@ func main() {
 		progressbar.OptionSpinnerType(14),
 		progressbar.OptionFullWidth(),
 	)
+	bar.RenderBlank()
 
 	playerEM.Attach(vlc.MediaPlayerPositionChanged, func(event vlc.Event, i interface{}) {
 		duration, _ := media.Duration()
