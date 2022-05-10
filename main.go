@@ -14,12 +14,24 @@ func check(err error) {
 	}
 }
 
+func getProgressBar() *progressbar.ProgressBar {
+	bar := progressbar.NewOptions64(
+		100,
+		progressbar.OptionSetWriter(os.Stderr),
+		progressbar.OptionSetWidth(10),
+		progressbar.OptionSetPredictTime(false),
+		progressbar.OptionSpinnerType(14),
+		progressbar.OptionFullWidth(),
+	)
+	bar.RenderBlank()
+	return bar
+}
+
 func main() {
 	if len(os.Args) < 2 {
 		panic(errors.New("missing url"))
 	}
 	requestedUrl := os.Args[1]
-	fmt.Println(requestedUrl)
 	ytClient := YoutubeClient{}
 	url, streamUrlErr := ytClient.GetBestAudioStreamUrl(requestedUrl)
 	check(streamUrlErr)
@@ -35,15 +47,7 @@ func main() {
 	media, mediaErr := player.LoadMediaFromURL(url)
 	check(mediaErr)
 
-	bar := progressbar.NewOptions64(
-		100,
-		progressbar.OptionSetWriter(os.Stderr),
-		progressbar.OptionSetWidth(10),
-		progressbar.OptionSetPredictTime(false),
-		progressbar.OptionSpinnerType(14),
-		progressbar.OptionFullWidth(),
-	)
-	bar.RenderBlank()
+	bar := getProgressBar()
 
 	playerEM.Attach(vlc.MediaPlayerPositionChanged, func(event vlc.Event, i interface{}) {
 		duration, _ := media.Duration()
