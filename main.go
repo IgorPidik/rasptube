@@ -43,12 +43,20 @@ func main() {
 
 	bar := getProgressBar()
 	ytPlayer.VLCPlayerEventManager.Attach(vlc.MediaPlayerPositionChanged, func(event vlc.Event, i interface{}) {
-		duration, _ := ytPlayer.CurrentMedia.Duration()
+		length, _ := ytPlayer.VLCPlayer.MediaLength()
 		position, _ := ytPlayer.VLCPlayer.MediaPosition()
-		durationSeconds := duration.Seconds()
-		currentSeconds := int(durationSeconds * float64(position))
-		bar.ChangeMax(int(durationSeconds))
-		bar.Set(currentSeconds)
+		currentMilliseconds := int(position * float32(length))
+		bar.ChangeMax(length)
+		bar.Set(currentMilliseconds)
+	}, nil)
+
+	ytPlayer.VLCPlayerEventManager.Attach(vlc.MediaPlayerEndReached, func(event vlc.Event, i interface{}) {
+		// use go routine to make sure the execution finishes, even after vlc kills the thread
+		go func() {
+			bar.Finish()
+			ytPlayer.Release()
+			os.Exit(0)
+		}()
 	}, nil)
 
 	fmt.Scanln()
