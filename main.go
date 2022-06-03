@@ -10,6 +10,7 @@ import (
 
 func check(err error) {
 	if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 }
@@ -32,39 +33,23 @@ func main() {
 		panic(errors.New("missing url"))
 	}
 	requestedUrl := os.Args[1]
-	ytClient := YoutubeClient{}
-	url, streamUrlErr := ytClient.GetBestAudioStreamUrl(requestedUrl)
-	check(streamUrlErr)
 
-	errVlc := vlc.Init("--quiet", "--no-xlib")
-	check(errVlc)
-	player, playerErr := vlc.NewPlayer()
-	check(playerErr)
+	ytPlayer, ytPlayerErr := NewYoutubePlayer(nil, nil)
+	check(ytPlayerErr)
+	defer ytPlayer.Release()
 
-	playerEM, emErr := player.EventManager()
-	check(emErr)
-
-	media, mediaErr := player.LoadMediaFromURL(url)
-	check(mediaErr)
+	playErr := ytPlayer.Play(requestedUrl)
+	check(playErr)
 
 	bar := getProgressBar()
-
-	playerEM.Attach(vlc.MediaPlayerPositionChanged, func(event vlc.Event, i interface{}) {
-		duration, _ := media.Duration()
-		position, _ := player.MediaPosition()
-		durationSeconds := int(duration.Seconds())
-		currentSeconds := int(float32(durationSeconds) * position)
-		bar.ChangeMax(durationSeconds)
+	ytPlayer.VLCPlayerEventManager.Attach(vlc.MediaPlayerPositionChanged, func(event vlc.Event, i interface{}) {
+		duration, _ := ytPlayer.CurrentMedia.Duration()
+		position, _ := ytPlayer.VLCPlayer.MediaPosition()
+		durationSeconds := duration.Seconds()
+		currentSeconds := int(durationSeconds * float64(position))
+		bar.ChangeMax(int(durationSeconds))
 		bar.Set(currentSeconds)
 	}, nil)
 
-	playErr := player.Play()
-	check(playErr)
-
-	var first string
-	fmt.Scanln(&first)
-
-	media.Release()
-	player.Release()
-	vlc.Release()
+	fmt.Scanln()
 }
