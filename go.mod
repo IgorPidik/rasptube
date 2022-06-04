@@ -1,4 +1,4 @@
-module yt-player
+module rasptube
 
 go 1.17
 
